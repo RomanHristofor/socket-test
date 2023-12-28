@@ -1,24 +1,24 @@
 .container {
-    display: flex;
+  display: flex;
+  width: 70%;
 }
 
 .table {
-    display: table;
-    font-size: 14px;
-    padding-right: 10px;
+  display: table;
+  font-size: 14px;
+  padding-right: 10px;
 }
 
 .row {
-    display: table-row;
+  display: table-row;
 }
 
 .header .cell {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .cell {
-    display: table-cell;
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
+  display: table-cell;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
 }
-  

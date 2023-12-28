@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
-import { VictoryLine, VictoryChart, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer } from 'victory';
-import { useExperiment } from '../api/provider';
-import './Style.css'
+import { useEffect, useState } from "react";
+import { Line } from "react-chartjs-2";
+import "chart.js/auto";
+import "chartjs-adapter-date-fns";
+import { useExperiment } from "../api/provider";
+import "./Style.css";
 
 interface Experiment {
   sensorId: string;
@@ -14,20 +16,43 @@ interface SensorData {
 }
 
 enum Status {
-  Start = 'Start',
-  Stop = 'Stop',
+  Start = "Start",
+  Stop = "Stop",
 }
 
+const options = {
+  scales: {
+    x: {
+      type: "time",
+      time: {
+        unit: "day",
+        tooltipFormat: "yyyy-MM-dd",
+      },
+      title: {
+        display: true,
+        text: "Date",
+      },
+    },
+    y: {
+      beginAtZero: true,
+      title: {
+        display: true,
+        text: "Value",
+      },
+    },
+  },
+};
+
 function Experiment() {
-  const { toggle, dataset } = useExperiment();
-  const [status, setStatus] = useState(Status.Start)
+  const { toggle, dataset, status } = useExperiment();
+  const [_status, setStatus] = useState(status || Status.Start);
   const [data, setData] = useState<SensorData>({});
-  const colors = ['red', 'blue'];
+  const colors = ["red", "blue"];
 
   const toggleBtn = () => {
-    setStatus(status === Status.Start ? Status.Stop : Status.Start)
-    toggle()
-  }
+    setStatus(_status === Status.Start ? Status.Stop : Status.Start);
+    toggle();
+  };
 
   useEffect(() => {
     if (dataset.length) {
@@ -41,15 +66,32 @@ function Experiment() {
         return acc;
       }, {});
 
-      setData(data)
+      setData(data);
     }
-  }, [dataset])
+  }, [dataset]);
+
+  const chartData = {
+    labels: Object.keys(data).flatMap((sensorId) =>
+      data[sensorId].map((d) => d.timestamp)
+    ),
+    datasets: Object.keys(data).map((sensorId, idx) => ({
+      label: `sensor: ${sensorId}`,
+      data: data[sensorId].map((d) => ({ x: d.timestamp, y: d.value })),
+      borderColor: colors[idx],
+      fill: false,
+    })),
+  };
 
   const downloadCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + Object.entries(data).map(([sensorId, dataPoints]) => 
-          dataPoints.map(point => `${sensorId},${point.timestamp},${point.value}`).join("\n")
-        ).join("\n");
+    let csvContent =
+      "data:text/csv;charset=utf-8," +
+      Object.entries(data)
+        .map(([sensorId, dataPoints]) =>
+          dataPoints
+            .map((point) => `${sensorId},${point.timestamp},${point.value}`)
+            .join("\n")
+        )
+        .join("\n");
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -62,29 +104,16 @@ function Experiment() {
 
   return (
     <>
-      <button onClick={toggleBtn}>{status}</button>
-      {Boolean(dataset.length) && <button onClick={downloadCSV}>Download CSV</button>}
+      <button onClick={toggleBtn}>{_status}</button>
+      {Boolean(dataset.length) && (
+        <button onClick={downloadCSV}>Download CSV</button>
+      )}
       <div className="container">
-        <VictoryChart domainPadding={20} containerComponent={<VictoryVoronoiContainer />}>
-          <VictoryAxis 
-            dependentAxis 
-            style={{ 
-              tickLabels: { fontSize: 8, textAnchor: 'end' }
-            }} 
-          />
-          <VictoryAxis style={{ tickLabels: { fontSize: 8 } }} />
-            {Object.keys(data).map((sensorId, idx) => (
-              <VictoryLine
-                key={sensorId}
-                data={data[sensorId]}
-                x="timestamp"
-                y="value"
-                style={{ data: { stroke: colors[idx % colors.length] } }}
-                labels={({ item }: { item: Experiment }) => `${item?.value}`}
-                labelComponent={<VictoryTooltip />}
-              />
-            ))}
-        </VictoryChart>
+        <Line
+          data={chartData}
+          // @ts-expect-error
+          options={options}
+        />
         <div className="table">
           <div className="row header">
             <div className="cell">ID</div>
@@ -104,5 +133,4 @@ function Experiment() {
   );
 }
 
-export default Experiment
-  
+export default Experiment;
